@@ -1,13 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : undefined);
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
-
-function getOfflineTitle(prompt: string) {
-  const words = prompt.trim().split(/\s+/).slice(0, 4);
-  const title = words.join(' ').replace(/[^\w\s-]/g, '').trim();
-  return title ? title : 'New Consultation';
-}
+const apiKey = "AQ.Ab8RN6Kmc0mbvFo__sQiwrc1N-9nTQUCXYs3MVmKzDKSkfc3JA";
+const ai = new GoogleGenAI({ apiKey });
 
 const KARACHI_SAHULAT_INSTRUCTION = `You are "Karachi Sahulat AI", a hyper-local, street-smart digital assistant for the citizens of Karachi, Pakistan.
 Your sole purpose is to provide immediate, actionable, and accurate information regarding the daily challenges in Karachi.
@@ -30,13 +24,6 @@ When a user asks about a specific area, location, or requests a status update on
 `;
 
 export async function getLiveAlerts() {
-  if (!ai) {
-    return {
-      traffic: "Traffic updates unavailable in this deployment.",
-      power: "Power updates unavailable in this deployment."
-    };
-  }
-
   const CACHE_KEY = "karachi_live_alerts_cache";
   const CACHE_DURATION = 1000 * 60 * 10; // 10 minutes
 
@@ -108,10 +95,6 @@ Be very concise.` }] }
 }
 
 export async function generateChatTitle(prompt: string) {
-  if (!ai) {
-    return getOfflineTitle(prompt);
-  }
-
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",
     contents: [
@@ -135,10 +118,6 @@ Message to summarize:
 }
 
 export async function askKarachiSahulat(history: {role: 'user' | 'model', parts: {text: string}[]}[], prompt: string) {
-  if (!ai) {
-    return "Gemini is not configured for this deployment yet. Add a Gemini API key to restore live AI responses.";
-  }
-
   const chat = ai.chats.create({
     model: "gemini-3.1-pro-preview",
     config: {

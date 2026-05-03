@@ -262,15 +262,13 @@ export function ChatApp() {
                         }}>
                           {chat.pinned ? <><PinOff size={14} className="mr-2" /> Unpin</> : <><Pin size={14} className="mr-2" /> Pin</>}
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => {
-                          e.stopPropagation();
+                        <DropdownMenuItem onSelect={() => {
                           setRenameChatId(chat.id);
                           setRenameChatVal(chat.title);
                         }}>
                           <Edit2 size={14} className="mr-2" /> Rename
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={(e) => {
-                          e.stopPropagation();
+                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onSelect={() => {
                           setDeleteChatId(chat.id);
                         }}>
                           <Trash2 size={14} className="mr-2" /> Delete
