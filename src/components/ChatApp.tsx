@@ -269,8 +269,9 @@ export function ChatApp() {
                         }}>
                           <Edit2 size={14} className="mr-2" /> Rename
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onSelect={(e) => {
-                          setTimeout(() => setDeleteChatId(chat.id), 0);
+                        <DropdownMenuItem className="text-red-600 focus:bg-red-50 focus:text-red-700" onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteChatId(chat.id);
                         }}>
                           <Trash2 size={14} className="mr-2" /> Delete
                         </DropdownMenuItem>
