@@ -1,0 +1,25 @@
+# This file specifies files that gcloud should not upload to your
+# Google Cloud project (when running `gcloud run deploy`).
+#
+# If you would like to instead ignore files matching the criteria here, (as opposed to upload them with your source code)
+# add them to the .gitignore file instead.
+#
+# For more information, run:
+#   $ gcloud topic gcloudignore
+#
+.gcloudignore
+# If you would like to exclude files from the deployed version of your
+# code (not uploaded on `gcloud run deploy`), add them here as well.
+#
+# Learn more about .gcloudignore files:
+#  https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+#
+node_modules/
+npm-debug.log
+.git
+.gitignore
+README.md
+.vscode
+.env
+.env.local
+dist/

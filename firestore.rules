@@ -1,0 +1,104 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
+        && data.keys().size() <= 4
+        && data.email is string && data.email.size() <= 256
+        && (data.get('displayName', '') is string && data.get('displayName', '').size() <= 64)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().email == request.auth.token.email
+                    && incoming().createdAt == request.time
+                    && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && request.auth.uid == userId && isValidId(userId)
+                    && isValidUser(incoming())
+                    && incoming().email == existing().email
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().updatedAt == request.time
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']);
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['userId', 'title', 'createdAt', 'updatedAt'])
+        && data.keys().size() <= 5
+        && data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid
+        && data.title is string && data.title.size() <= 200
+        && (data.get('pinned', false) is bool)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidId(chatId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(chatId)
+                    && isValidChat(incoming())
+                    && exists(/databases/$(database)/documents/users/$(incoming().userId))
+                    && incoming().createdAt == request.time
+                    && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(chatId) && existing().userId == request.auth.uid
+                    && isValidChat(incoming())
+                    && incoming().userId == existing().userId
+                    && incoming().createdAt == existing().createdAt
+                    && incoming().updatedAt == request.time
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'pinned', 'updatedAt']);
+      allow delete: if isSignedIn() && isValidId(chatId) && existing().userId == request.auth.uid;
+      
+      function isValidMessage(data) {
+        return data.keys().hasAll(['chatId', 'userId', 'sender', 'content', 'createdAt'])
+          && data.keys().size() <= 6
+          && data.chatId is string && data.chatId.size() <= 128 && data.chatId == chatId
+          && data.userId is string && data.userId.size() <= 128 && data.userId == request.auth.uid
+          && data.sender is string && (data.sender == 'user' || data.sender == 'ai')
+          && data.content is string && data.content.size() <= 10000
+          && data.createdAt is timestamp
+          && (data.get('status', 'sent') is string && (data.get('status', 'sent') == 'sending' || data.get('status', 'sent') == 'sent' || data.get('status', 'sent') == 'error'));
+      }
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isValidId(chatId) && isValidId(messageId) && existing().userId == request.auth.uid;
+        allow list: if isSignedIn() && isValidId(chatId) && resource.data.userId == request.auth.uid;
+        allow create: if isSignedIn() && isValidId(chatId) && isValidId(messageId)
+                      && isValidMessage(incoming())
+                      && get(/databases/$(database)/documents/chats/$(chatId)).data.userId == request.auth.uid
+                      && incoming().createdAt == request.time;
+        // Don't strictly need exists() on parent chat because we do a get() on the parent chat's userId, which will fail if it doesn't exist
+        allow update: if isSignedIn() && isValidId(chatId) && isValidId(messageId) && existing().userId == request.auth.uid
+                      && isValidMessage(incoming())
+                      && incoming().chatId == existing().chatId
+                      && incoming().userId == existing().userId
+                      && incoming().sender == existing().sender
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'status']);
+      }
+    }
+  }
+}
